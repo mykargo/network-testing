@@ -1,22 +1,20 @@
 # network-testing
 
-A tool to check that a site's firewall allows the traffic Kargo devices need.
-Run it from a machine on the same network segment as the Kargo device. The
-results then match what the device will see.
+Checks that a site's firewall allows the traffic Kargo devices need.
+Run either tool from a machine on the same network segment as the Kargo device.
+The results then match what the device will see.
 
+The [Python checker (`kargo_netcheck.py`)](#python-checker-kargo_netcheckpy) is for
+engineers. It needs Python 3.7+.
 
-There are two ways to run the test:
+The [field test scripts (v2.1)](#field-test-scripts-v21) are for customer IT and
+field ops. They are standalone Bash and PowerShell scripts in `field-test/`.
+On macOS or Linux they need Bash and `curl`. On Windows they need PowerShell 5.1+.
 
-- **`kargo_netcheck.py`**: a single Python script for engineers (below).
-- **`field-test/`**: Kargo Network Test v2.1 for customer IT and field ops. These are
-  standalone Bash and PowerShell scripts that need no Python. See
-  [Field test scripts (v2.1)](#field-test-scripts-v21).
+## Python checker (`kargo_netcheck.py`)
 
-Everything is in one file, `kargo_netcheck.py`. It uses only the Python
-standard library, so you can copy that file to any machine with Python 3.7+
-and run it.
-
-## Quick start
+`kargo_netcheck.py` is a single file. It uses only the Python standard library,
+so you can copy that file to any machine with Python 3.7+ and run it.
 
 ```bash
 python3 kargo_netcheck.py
@@ -69,6 +67,8 @@ inspection (decryption) for:
 - `edp12.devicecloud.com:3199`
 
 ## Requirements
+
+For `kargo_netcheck.py`:
 
 - Python 3.7+ (standard library only, no extra packages)
 - The system CA store, which the Let's Encrypt check uses. On macOS with a
