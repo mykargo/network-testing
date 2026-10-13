@@ -29,8 +29,7 @@
 #      "tailnode" plus FINGERPRINT); the server drops anything else silently.
 #      "No reply" and "a reply that was not valid STUN" are now reported
 #      separately - the second means UDP egress works and is not a firewall
-#      problem. On success a bare RFC 5389 request is also sent, to show on the
-#      customer's own network why generic STUN tools call this port closed.
+#      problem.
 # =============================================================================
 
 set -u
@@ -250,21 +249,6 @@ stun_probe() {
     i=$(( i + 4 + al + ((4 - al % 4) % 4) ))
   done
   return 0        # valid reply, address attribute not recognised
-}
-
-# stun_bare_silent <host> <port> -> 0 if a bare RFC 5389 request gets no answer.
-#
-# 20 bytes: header only, no SOFTWARE, no FINGERPRINT - exactly what a stock
-# stunclient, nmap --script stun-info or a web port checker sends. Run only after
-# the real probe has already succeeded, so the report can show, from the
-# customer's own network, that a generic tool calls this port closed while it is
-# demonstrably open. That argument otherwise has to be made in a meeting.
-stun_bare_silent() {
-  have nc || return 1
-  local B='\x00\x01\x00\x00\x21\x12\xa4\x42KargoBare456'
-  local R
-  R=$(printf "$B" | nc -u -w 3 "$1" "$2" 2>/dev/null | od -An -tu1)
-  [ -z "$R" ]
 }
 
 # ---------- start -----------------------------------------------------------
@@ -525,12 +509,6 @@ hdr "6. UDP ENDPOINTS"
 case "$STUN_RC" in
   0)
     result PASS "sdn.kargo.zone UDP 3478" "valid STUN response${STUN_IP:+, egress IP $STUN_IP}"
-    # Now demonstrate, on this network, why generic tools disagree.
-    if stun_bare_silent sdn.kargo.zone 3478; then
-      say "           ^ a bare RFC 5389 request to the same port got NO reply, which is"
-      say "             why stunclient, nmap and web port checkers call 3478 closed here."
-      say "             The port is open. Only Tailscale-format requests are answered."
-    fi
     ;;
   2) result WARN "sdn.kargo.zone UDP 3478" "nc not available - could not test" ;;
   3)

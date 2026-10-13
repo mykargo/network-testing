@@ -37,8 +37,7 @@
       "tailnode" plus FINGERPRINT); the server drops anything else silently.
       "No reply" and "a reply that was not valid STUN" are now reported
       separately - the second means UDP egress works and is not a firewall
-      problem. On success a bare RFC 5389 request is also sent, to show on the
-      customer's own network why generic STUN tools call this port closed.
+      problem.
  =============================================================================
 #>
 
@@ -332,32 +331,6 @@ function Get-StunMappedAddress([string]$H, [int]$P) {
     return $out
 }
 
-# Sends a bare RFC 5389 binding request - 20 bytes, no SOFTWARE, no FINGERPRINT,
-# exactly what a stock stunclient, nmap --script stun-info or a web port checker
-# sends. Returns $true when nothing comes back. Run only after the real probe has
-# already succeeded, so the report can show on the customer's own network that a
-# generic tool calls this port closed while it is demonstrably open. That argument
-# otherwise has to be made in a meeting.
-function Test-StunBareSilent([string]$H, [int]$P) {
-    $q = New-Object byte[] 20
-    $q[0]=0x00; $q[1]=0x01; $q[2]=0x00; $q[3]=0x00
-    $q[4]=0x21; $q[5]=0x12; $q[6]=0xA4; $q[7]=0x42
-    for ($i = 0; $i -lt 12; $i++) { $q[8 + $i] = [byte](Get-Random -Minimum 0 -Maximum 256) }
-    try {
-        $u = New-Object System.Net.Sockets.UdpClient
-        $u.Client.ReceiveTimeout = 3000
-        $u.Connect($H, $P)
-        [void]$u.Send($q, 20)
-        $ep = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-        $null = $u.Receive([ref]$ep)
-        $u.Close()
-        return $false
-    } catch {
-        try { $u.Close() } catch {}
-        return $true
-    }
-}
-
 # ---------------------------------------------------------------------------
 Say "==============================================================="
 Say " KARGO NETWORK TEST v2.1"
@@ -574,12 +547,6 @@ if ($stun.Ok) {
     $d = 'valid STUN response'
     if ($stun.Ip) { $d = $d + ', egress IP ' + $stun.Ip }
     Res 'PASS' 'sdn.kargo.zone UDP 3478' $d
-    # Now demonstrate, on this network, why generic tools disagree.
-    if (Test-StunBareSilent 'sdn.kargo.zone' 3478) {
-        Say "           ^ a bare RFC 5389 request to the same port got NO reply, which is"
-        Say "             why stunclient, nmap and web port checkers call 3478 closed here."
-        Say "             The port is open. Only Tailscale-format requests are answered."
-    }
 } elseif ($stun.State -eq 'invalid') {
     Res 'WARN' 'sdn.kargo.zone UDP 3478' 'a reply came back but it was not a valid STUN response - UDP egress works, something unexpected is answering on 3478'
 } else {
